@@ -1,6 +1,12 @@
 {
+    "title": "Battle",
+    "redis_scoreboard": 0,
+
     "n_players": 2,
-    "port": 8990,
     "timeout": 1,
-    "redis_scoreboard": 0
+    "multithreaded": true,
+
+    "address": "localhost",
+    "port": 8990,
+    "ws_port": 28990
 }

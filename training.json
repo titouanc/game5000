@@ -1,6 +1,12 @@
 {
+    "title": "Training",
+    "redis_scoreboard": 2,
+
     "n_players": 1,
-    "port": 8998,
     "timeout": 60,
-    "redis_scoreboard": null
+    "multithreaded": true,
+
+    "address": "localhost",
+    "port": 8998,
+    "ws_port": 28998
 }

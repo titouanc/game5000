@@ -1,14 +1,36 @@
 import socket
 import json
 import logging
+from threading import Thread
 from random import shuffle
+from redis import Redis
 
 from game import PlayerState
-from scoreboard import increment_score, decrement_score
 
 # logging.setLoggerClass(ColoredLogger)
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Server")
+
+
+class ScoresDB(Redis):
+    def __init__(self, db):
+        logger.debug("Connect to redis db=%d" % db)
+        super(ScoresDB, self).__init__(unix_socket_path='scoresdb.sock', db=db)
+
+    def alter(self, key, by, names):
+        for name in names:
+            logger.info("%s.%s += %d" % (name, key, by))
+            self.hincrby(name, key, by)
+        return self
+
+    def inc_played(self, *names):
+        return self.alter("count", 1, names)
+
+    def inc_score(self, *names):
+        return self.alter("won", 1, names)
+
+    def dec_score(self, *names):
+        return self.alter("won", -1, names)
 
 
 class InvalidCommand(Exception):
@@ -30,15 +52,16 @@ class Client:
         self.send('STATE: ' + json.dumps(self.state.dict()) + '\n')
 
     def run_command(self, line):
-        if line.startswith('TRASH'):
+        line_upper = line.upper()
+        if line_upper.startswith('TRASH'):
             self.state.finish_turn(False)
             return False
-        if line.startswith('BANK'):
+        if line_upper.startswith('BANK'):
             if len(self.state.dices) != 5:
                 raise InvalidCommand("Cannot bank in partial turn")
             self.state.finish_turn()
             return False
-        if line.startswith('NAME '):
+        if line_upper.startswith('NAME '):
             if self.state.played_turns > 0:
                 raise InvalidCommand("Cannot change name after first turn")
             name = line[5:].split('\n')[0].strip()
@@ -46,7 +69,7 @@ class Client:
                 raise InvalidCommand("Name cannot be empty")
             self.name = name
             return True
-        if line.startswith('PLAY '):
+        if line_upper.startswith('PLAY '):
             to_keep = json.loads(line[5:].strip())
             if len(to_keep) == 0:
                 raise InvalidCommand("Need at least one dice to keep")
@@ -123,23 +146,29 @@ def run_table(fds, redis_scoreboard):
         for client in table_clients:
             client.send("WINNER %s\n" % name)
 
-    while True:
+    running = True
+    while running:
         for client in table_clients:
             connected = client.run_turn()
             if not connected and redis_scoreboard is not None:
-                decrement_score(redis_scoreboard, client.name)
+                redis = ScoresDB(redis_scoreboard)
+                redis.dec_score(client.name).inc_played(client.name)
             elif client.state.win():
                 tell_winner(client.name)
                 if redis_scoreboard is not None:
-                    increment_score(redis_scoreboard, client.name)
-                connected = False
+                    redis = ScoresDB(redis_scoreboard)
+                    redis.inc_score(client.name)
+                    redis.inc_played(c.name for c in table_clients)
+                running = False
+                break
             if not connected:
                 disconnect_all()
                 return
 
 
 def run_server(bind_ip='127.0.0.1', port=8998,
-               n_players=1, timeout=None, redis_scoreboard=None):
+               n_players=1, timeout=None, redis_scoreboard=None,
+               multithreaded=False, **kwargs):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((bind_ip, port))
@@ -154,7 +183,10 @@ def run_server(bind_ip='127.0.0.1', port=8998,
             fd.settimeout(timeout)
             clients.add(fd)
             logger.info("Connection from %s:%d" % (ip, port))
-        run_table(clients, redis_scoreboard)
+        if multithreaded:
+            Thread(target=run_table, args=(clients, redis_scoreboard)).start()
+        else:
+            run_table(clients, redis_scoreboard)
         clients = set()
 
 

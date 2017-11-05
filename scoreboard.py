@@ -1,54 +1,18 @@
 import asyncio
+from aiohttp import web
 import asyncio_redis as aioredis
 import websockets
 import json
 
 
-@asyncio.coroutine
-def get_redis(db):
-    return aioredis.Connection.create('scoresdb.sock', 0, db=db)
-
-
-@asyncio.coroutine
-def async_increment_played(names, db):
-    r = yield from get_redis(db)
-    for name in names:
-        yield from r.hincrby(name, "played", 1)
-    r.close()
-
-
-@asyncio.coroutine
-def async_increment_score(name, db=0):
-    r = yield from get_redis(db)
-    yield from r.hincrby(name, "won", 1)
-    r.close()
-
-
-@asyncio.coroutine
-def async_decrement_score(name, db=0):
-    r = yield from get_redis(db)
-    yield from r.hincrby(name, "won", -1)
-    r.close()
-
-
-def synchronous(func):
-    loop = asyncio.get_event_loop()
-
-    def inner(*args, **kwargs):
-        coroutine = func(*args, **kwargs)
-        return loop.run_until_complete(coroutine)
-    return inner
-
-
-increment_played = synchronous(async_increment_played)
-increment_score = synchronous(async_increment_score)
-decrement_score = synchronous(async_decrement_score)
-
-
-def scoreboard_websocket(title, db, address, port):
+def scoreboard_websocket(title, redis_scoreboard, address, ws_port, **kwargs):
     loop = asyncio.get_event_loop()
     scores = {}
     clients = []
+
+    def get_redis():
+        return aioredis.Connection.create('scoresdb.sock', 0,
+                                          db=redis_scoreboard)
 
     def update_score(r, name):
         value = yield from r.hgetall(name)
@@ -59,7 +23,7 @@ def scoreboard_websocket(title, db, address, port):
         scores[name] = entry
 
     def setup_redis():
-        r = yield from get_redis(db)
+        r = yield from get_redis()
 
         keys = yield from r.keys('*')
         for key_future in keys:
@@ -67,7 +31,7 @@ def scoreboard_websocket(title, db, address, port):
             yield from update_score(r, key)
 
         p = yield from r.start_subscribe()
-        yield from p.subscribe(['__keyevent@0__:hincrby'])
+        yield from p.subscribe(['__keyevent@%d__:hincrby' % redis_scoreboard])
         return r, p
 
     r, p = loop.run_until_complete(setup_redis())
@@ -75,7 +39,7 @@ def scoreboard_websocket(title, db, address, port):
 
     def format_response():
         scores_list = [
-            {'name': n, 'count': s['count'], 'won': s['won']}
+            {'name': n, 'count': s.get('count', 0), 'won': s.get('won', 0)}
             for n, s in scores.items()
         ]
         r = json.dumps({
@@ -94,7 +58,7 @@ def scoreboard_websocket(title, db, address, port):
         print("Client quit", ws)
 
     def new_score(key):
-        r = yield from get_redis(db)
+        r = yield from get_redis()
         yield from update_score(r, key)
         payload = format_response()
         active = [True for _ in clients]
@@ -110,22 +74,38 @@ def scoreboard_websocket(title, db, address, port):
     def pump_events():
         while True:
             evt = yield from p.next_published()
+            print(evt)
             asyncio.async(new_score(evt.value))
 
-    start_server = websockets.serve(accept_client, address, port)
+    start_server = websockets.serve(accept_client, address, ws_port)
     loop.run_until_complete(start_server)
-    print("Websocket started. Pumping events...")
-    loop.run_until_complete(pump_events())
+    print("Scores for", title,
+          "published on", "ws://%s:%d" % (address, ws_port))
+    asyncio.async(pump_events())
 
+
+webapp = web.Application()
+webapp.GET = lambda route: lambda func: webapp.router.add_get(route, func)
+
+
+@webapp.GET('/')
+def index(req):
+    content = open('scoreboard/index.html').read()
+    return web.Response(text=content, content_type='text/html')
 
 if __name__ == "__main__":
     from sys import argv
-    db = 0
-    name = "Game of 5000"
 
-    if len(argv) > 1:
-        port = int(argv[1])
-    if len(argv) > 2:
-        name = argv[2]
+    boards = []
 
-    scoreboard_websocket(name, db, 'localhost', 8888)
+    for arg in argv[1:]:
+        config = json.load(open(arg))
+        boards.append(config)
+        if 'ws_port' in config:
+            scoreboard_websocket(**config)
+
+    @webapp.GET('/boards.json')
+    def list_boards(req):
+        return web.json_response(boards)
+
+    web.run_app(webapp, host='localhost', port=8000)
