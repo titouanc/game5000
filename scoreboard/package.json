@@ -1,0 +1,15 @@
+{
+  "name": "scoreboard",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "elm": "elm",
+    "build": "elm make Main.elm --debug"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "elm": "^0.18.0"
+  }
+}

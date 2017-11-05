@@ -1,0 +1,15 @@
+# Python / pytest
+ve*
+__pycache__
+*.pyc
+.cache
+
+# Redis
+*.pid
+*.sock
+*.rdb
+
+# Webapp build products
+*.html
+elm-stuff
+node_modules

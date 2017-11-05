@@ -1,0 +1,6 @@
+{
+    "n_players": 2,
+    "port": 8990,
+    "timeout": 1,
+    "redis_scoreboard": 0
+}
