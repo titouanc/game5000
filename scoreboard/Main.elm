@@ -18,17 +18,6 @@ ratio : Player -> Int
 ratio player = round <| 100 * toFloat player.won / toFloat player.count
 
 
--- The board itself
-type alias Board = { title: String, scores: List Player}
-
-decodeBoard = map2 Board
-                   (field "title" string)
-                   (field "scores" <| Json.Decode.list decodePlayer)
-
-emptyBoard : Board
-emptyBoard = {title="Scoreboard", scores=[]}
-
-
 -- A board information listed in /boards.json
 type alias BoardInfo = {ws_port: Int, game_port: Int, address: String, title: String}
 
@@ -50,10 +39,19 @@ ncCommand {address, game_port} = "nc " ++ address ++ " " ++ toString game_port
 
 type alias PlayerSort = (String, Player -> Int)
 
-type alias Model = { board: Board
+type alias Model = { scores: List Player
                    , infos: Maybe BoardInfo
                    , sortKey: PlayerSort
                    , list_boards: List BoardInfo}
+
+freshModel : Model
+freshModel = { sortKey=("Score", ratio)
+             , scores=[]
+             , infos=Nothing
+             , list_boards=[]}
+
+setBoardInfo : BoardInfo -> Model -> Model
+setBoardInfo board model = {model | infos=Just board, scores=[]}
 
 
 type Msg = NewScores String
@@ -65,18 +63,13 @@ type Msg = NewScores String
 getBoards : Cmd Msg
 getBoards = Http.get "/boards.json" decodeBoardInfo |> Http.send ListBoards
 
-freshModel : Model
-freshModel = {sortKey=("Score", ratio)
-             , board=emptyBoard
-             , infos=Nothing
-             , list_boards=[]}
-
 init : (Model, Cmd Msg)
 init = (freshModel, getBoards)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  let newmodel = case msg of
+  let decodeUpdate = field "scores" <| Json.Decode.list <| decodePlayer
+      newmodel = case msg of
       SortBy col -> {model | sortKey=col}
       Watch board -> {model | infos=Just board}
       ListBoards (Err _) -> model
@@ -84,9 +77,9 @@ update msg model =
           let newmodel = {model | list_boards=s} -- Update list of known boards
           in case s of [] -> newmodel                       -- No boards at all
                        board::_ -> {newmodel | infos=Just board} -- Show first board
-      NewScores str -> case decodeString decodeBoard str of
+      NewScores str -> case decodeString decodeUpdate str of
           Err _ -> model
-          Ok newboard -> {model | board=newboard}
+          Ok data -> {model | scores=data}
   in (newmodel, Cmd.none)
 
 
@@ -165,7 +158,7 @@ view model =
                        [ text board.title ]
         boards = List.map link model.list_boards
         linkbar = small [style [("font-size", "50%")]] boards
-        table = tableBoard model.sortKey model.board.scores
+        table = tableBoard model.sortKey model.scores
         body = case model.infos of
             Nothing -> [ h1 [] [text "Loading..."] ]
             Just x -> [ h1 [] [text x.title, linkbar]
