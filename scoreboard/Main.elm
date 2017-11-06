@@ -152,7 +152,7 @@ tableBoard (sortColumn, sortFunc) data =
 view : Model -> Html Msg
 view model =
     let linkStyle = style [("margin-left", "1em"), ("color", "black")]
-        globalStyle = style [ ("font-size", "150%"), ("width", "100%")]
+        globalStyle = style [ ("font-size", "150%"), ("width", "100%"), ("padding", "5px")]
         codeStyle = style [("background-color", "black"), ("color", "white"), ("padding", ".2em")]
         link board = a [ linkStyle, href "#", onClick <| Watch board]
                        [ text board.title ]
@@ -162,10 +162,7 @@ view model =
         body = case model.infos of
             Nothing -> [ h1 [] [text "Loading..."] ]
             Just x -> [ h1 [] [text x.title, linkbar]
-                      , h3 [] [ text "Host: "
-                              , small [] [text x.address]
-                              , text " / Port: "
-                              , small [] [text <| toString x.game_port]
+                      , h3 [] [ code [codeStyle] [ text <| "nc \"" ++ x.address ++ "\" " ++ toString x.game_port ++ ""]
                               , small [] [text " or "]
                               , code [codeStyle] [ text <| "Client(<your name>, \"" ++ x.address ++ "\", " ++ toString x.game_port ++ ")"]
                               ]
