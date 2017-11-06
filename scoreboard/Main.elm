@@ -162,9 +162,15 @@ view model =
         body = case model.infos of
             Nothing -> [ h1 [] [text "Loading..."] ]
             Just x -> [ h1 [] [text x.title, linkbar]
-                      , div [] [ text "Try this server:"
-                               , code [codeStyle] [ ncCommand x |> text ]]
-                      , table]
+                      , h3 [] [ text "Host: "
+                              , small [] [text x.address]
+                              , text " / Port: "
+                              , small [] [text <| toString x.game_port]
+                              , small [] [text " or "]
+                              , code [codeStyle] [ text <| "Client(<your name>, \"" ++ x.address ++ "\", " ++ toString x.game_port ++ ")"]
+                              ]
+                      , table
+                      ]
     in div [globalStyle] body
 
 -- Main
