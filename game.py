@@ -91,13 +91,10 @@ class PlayerState:
 
         # All dices have been played
         if remaining_dices == 0:
-            # All hands have been played
-            if self.played_hands == 3:
-                return False
             self.played_hands += 1
             remaining_dices = 5
         self.dices = self.get_dices(remaining_dices)
-        return True
+        return self.played_hands < 3
 
     def win(self, goal=5000):
         """Return True if the player wins, according to the `goal` score"""
