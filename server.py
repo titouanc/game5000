@@ -106,8 +106,8 @@ class Client:
                 except Exception as err:
                     msg = "ERROR: %s %s\n" % (err.__class__.__name__, str(err))
                     self.send(msg)
-                    fmt = "Error in client trial %d/3 from %s"
-                    logger.exception(fmt % (1 + retries, self.name))
+                    fmt = "Error in client trial %d/3 from %s (%s)"
+                    logger.info(fmt % (1 + retries, self.name, msg))
             if not successful_cmd:
                 can_play = self.run_command('TRASH')
                 logger.warning("3 consecutive errors. TRASH")
