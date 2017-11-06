@@ -8,7 +8,7 @@ from redis import Redis
 from game import PlayerState
 
 # logging.setLoggerClass(ColoredLogger)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("Server")
 
 
@@ -23,13 +23,13 @@ class ScoresDB(Redis):
             self.hincrby(name, key, by)
         return self
 
-    def inc_played(self, *names):
+    def inc_played(self, names):
         return self.alter("count", 1, names)
 
-    def inc_score(self, *names):
+    def inc_score(self, names):
         return self.alter("won", 1, names)
 
-    def dec_score(self, *names):
+    def dec_score(self, names):
         return self.alter("won", -1, names)
 
 
@@ -152,18 +152,18 @@ def run_table(fds, redis_scoreboard):
             connected = client.run_turn()
             if not connected and redis_scoreboard is not None:
                 redis = ScoresDB(redis_scoreboard)
-                redis.dec_score(client.name).inc_played(client.name)
+                redis.dec_score([client.name]).inc_played([client.name])
+                running = False
+                break
             elif client.state.win():
                 tell_winner(client.name)
                 if redis_scoreboard is not None:
                     redis = ScoresDB(redis_scoreboard)
-                    redis.inc_score(client.name)
+                    redis.inc_score([client.name])
                     redis.inc_played(c.name for c in table_clients)
                 running = False
                 break
-            if not connected:
-                disconnect_all()
-                return
+    disconnect_all()
 
 
 def run_server(bind_ip='127.0.0.1', port=8998,
