@@ -87,7 +87,7 @@ class PlayerState:
     def play(self, keep_indices):
         """Play a single hand. Return True if the turn can continue"""
         remaining_dices, score = get_score(self.dices, keep_indices)
-        self.turn_score += score + score * self.played_hands / 2.0
+        self.turn_score += score + score * self.played_hands
 
         # All dices have been played
         if remaining_dices == 0:

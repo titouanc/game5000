@@ -58,7 +58,7 @@ class Client:
             return False
         if line_upper.startswith('BANK'):
             if len(self.state.dices) != 5:
-                raise InvalidCommand("Cannot bank in partial turn")
+                raise InvalidCommand("Cannot bank with all dices played")
             self.state.finish_turn()
             return False
         if line_upper.startswith('NAME '):
@@ -144,7 +144,7 @@ def run_table(fds, redis_scoreboard):
 
     def tell_winner(name):
         for client in table_clients:
-            client.send("WINNER %s\n" % name)
+            client.send("WINNER: %s\n" % name)
 
     running = True
     while running:
@@ -172,7 +172,10 @@ def run_server(bind_ip='127.0.0.1', port=8998,
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((bind_ip, port))
-    sock.listen(1024)
+    if multithreaded:
+        sock.listen(512)
+    else:
+        sock.listen(1)
 
     logger.info("Server started")
 

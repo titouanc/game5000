@@ -46,16 +46,13 @@ def scoreboard_websocket(title, redis_scoreboard, address, ws_port, **kwargs):
             'title': title,
             'scores': scores_list,
         })
-        print(r)
         return r
 
     def accept_client(ws, path):
         clients.append(ws)
-        print("New client", ws)
         yield from ws.send(format_response())
         while ws.open:
             yield from asyncio.sleep(1)
-        print("Client quit", ws)
 
     def new_score(key):
         r = yield from get_redis()
@@ -74,7 +71,6 @@ def scoreboard_websocket(title, redis_scoreboard, address, ws_port, **kwargs):
     def pump_events():
         while True:
             evt = yield from p.next_published()
-            print(evt)
             asyncio.async(new_score(evt.value))
 
     start_server = websockets.serve(accept_client, address, ws_port)
