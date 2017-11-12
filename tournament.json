@@ -2,7 +2,7 @@
     "title": "Tournament",
     "redis_scoreboard": 1,
 
-    "n_players": 2,
+    "n_players": 3,
     "timeout": 1,
 
     "address": "localhost",
