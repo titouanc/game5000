@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "elm": "elm",
-    "build": "elm make Main.elm --debug"
+    "build": "elm make Main.elm --yes --warn"
   },
   "author": "",
   "license": "ISC",
