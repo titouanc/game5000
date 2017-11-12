@@ -50,7 +50,7 @@ class Client:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
         self.lines = []
-        logger.debug("Connected to %s:%d" % (host, port))
+        logger.info("Connected to %s:%d, waiting for game..." % (host, port))
 
     def _read_lines(self):
         if not self.lines:
@@ -75,7 +75,7 @@ class Client:
                 if line.startswith('STARTING'):
                     running = True
                     players = json.loads(line.strip().replace('STARTING ', ''))
-                    logger.info("Players, in this order: %s" % repr(players))
+                    logger.info("Starting ! Players, in this order: %s" % repr(players))
                     break
 
         name_sent = False
@@ -85,8 +85,15 @@ class Client:
                 if line.startswith('KICK'):
                     running = False
                     break
+                if line.startswith('ERROR: '):
+                    logger.error(line.strip().replace('ERROR: ', ''))
+                if line.startswith('TRASH'):
+                    logger.warning("Auto-TRASH after 3 illegal actions")
                 if line.startswith('STATE: '):
                     state = json.loads(line.strip().replace('STATE: ', ''))
+                if line.startswith('WINNER: '):
+                    winner = line.strip().replace('WINNER: ', '')
+                    logger.info("The winner is %s", winner)
                 if line.startswith('>> '):
                     if not name_sent:
                         self._send("NAME %s" % self.name)
@@ -110,7 +117,7 @@ if __name__ == "__main__":
         # Then play one of the following:
         # -------------------------------
 
-        #    Play some dices
+        # Play some dices
         state.play([0, 1, 2, 3, 4])
 
         # OR Save current hand score
