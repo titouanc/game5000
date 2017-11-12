@@ -49,7 +49,8 @@ class Client:
         return self.fd.recv(1024).decode()
 
     def send_state(self):
-        self.send('STATE: ' + json.dumps(self.state.dict()) + '\n')
+        serialized = json.dumps(self.state.dict(), sort_keys=True)
+        self.send('STATE: ' + serialized + '\n')
 
     def run_command(self, line):
         line_upper = line.upper()
