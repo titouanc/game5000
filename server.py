@@ -172,6 +172,7 @@ def run_server(bind_ip='127.0.0.1', port=8998,
                multithreaded=False, **kwargs):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     sock.bind((bind_ip, port))
     if multithreaded:
         sock.listen(512)
