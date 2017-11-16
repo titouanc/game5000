@@ -188,9 +188,15 @@ def run_server(bind_ip='127.0.0.1', port=8998,
             fd.settimeout(timeout)
             clients.add(fd)
             logger.info("Connection from %s:%d" % (ip, port))
+        
+        started = False
         if multithreaded:
-            Thread(target=run_table, args=(clients, redis_scoreboard)).start()
-        else:
+            try:
+                Thread(target=run_table, args=(clients, redis_scoreboard)).start()
+                started = True
+            except:
+                pass
+        if not started:
             run_table(clients, redis_scoreboard)
         clients = set()
 
