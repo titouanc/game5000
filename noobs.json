@@ -1,12 +1,12 @@
 {
-    "title": "Battle",
-    "redis_scoreboard": 0,
+    "title": "Noobs",
+    "redis_scoreboard": 3,
 
     "n_players": 2,
     "timeout": 1,
     "multithreaded": true,
 
     "address": "172.23.218.19",
-    "port": 8990,
-    "ws_port": 28990
+    "port": 8991,
+    "ws_port": 28991
 }

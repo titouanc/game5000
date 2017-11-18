@@ -167,9 +167,10 @@ def run_table(fds, redis_scoreboard):
     disconnect_all()
 
 
-def run_server(bind_ip='127.0.0.1', port=8998,
+def run_server(address='127.0.0.1', port=8998,
                n_players=1, timeout=None, redis_scoreboard=None,
                multithreaded=False, **kwargs):
+    bind_ip = address
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -188,7 +189,7 @@ def run_server(bind_ip='127.0.0.1', port=8998,
             fd.settimeout(timeout)
             clients.add(fd)
             logger.info("Connection from %s:%d" % (ip, port))
-        
+
         started = False
         if multithreaded:
             try:
@@ -197,7 +198,10 @@ def run_server(bind_ip='127.0.0.1', port=8998,
             except:
                 pass
         if not started:
-            run_table(clients, redis_scoreboard)
+            try:
+                run_table(clients, redis_scoreboard)
+            except:
+                pass
         clients = set()
 
 

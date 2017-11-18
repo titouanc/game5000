@@ -6,7 +6,7 @@
     "timeout": 60,
     "multithreaded": true,
 
-    "address": "localhost",
+    "address": "172.23.218.19",
     "port": 8998,
     "ws_port": 28998
 }

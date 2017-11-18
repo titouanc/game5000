@@ -107,7 +107,7 @@ class Client:
 
 if __name__ == "__main__":
     # Connect to the game server with your name
-    client = Client(name="Demo", server_host='localhost', server_port=8990)
+    client = Client(name="Titou", host='172.23.218.19', port=8998)
 
     # Play a game
     for state in client:

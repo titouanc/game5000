@@ -5,7 +5,7 @@
     "n_players": 3,
     "timeout": 1,
 
-    "address": "localhost",
+    "address": "172.23.218.19",
     "port": 8900,
     "ws_port": 28900
 }
